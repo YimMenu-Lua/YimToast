@@ -164,6 +164,10 @@ end
 ---@field queue Toast[]
 local Notifier = {}
 Notifier.__index = Notifier
+Notifier.last_caller = nil
+Notifier.last_message = nil
+Notifier.last_time = 0
+Notifier.rate_limit = 3.0
 
 function Notifier.new()
     __init__ = true
@@ -183,7 +187,15 @@ end
 ---@param level ToastLevel The notification type.
 ---@param withLog? boolean **Optional:** Log to console as well.
 ---@param duration? float **Optional:** The duration of the notification *(default 3s)*.
-function Notifier:ShowToast(caller, message, level, withLog, duration)
+function Notifier:Notify(caller, message, level, withLog, duration)
+    local current_time = os.clock()
+    if (self.last_caller == caller and self.last_message == message) and (current_time - self.last_time) < self.rate_limit then
+        return
+    end
+
+    self.last_caller = caller
+    self.last_message = message
+    self.last_time = current_time
     table.insert(self.queue, Toast.new(caller, message, level, duration or 3.0, withLog or false))
 end
 
@@ -192,6 +204,14 @@ end
 ---@param withLog? boolean **Optional:** Log to console as well.
 ---@param duration? float **Optional:** The duration of the notification *(default 3s)*.
 function Notifier:ShowMessage(caller, message, withLog, duration)
+    local current_time = os.clock()
+    if (self.last_caller == caller and self.last_message == message) and (current_time - self.last_time) < self.rate_limit then
+        return
+    end
+
+    self.last_caller = caller
+    self.last_message = message
+    self.last_time = current_time
     table.insert(self.queue, Toast.new(caller, message, 0, duration or 3.0, withLog or false))
 end
 
@@ -200,6 +220,14 @@ end
 ---@param withLog? boolean **Optional:** Log to console as well.
 ---@param duration? float **Optional:** The duration of the notification *(default 3s)*.
 function Notifier:ShowSuccess(caller, message, withLog, duration)
+    local current_time = os.clock()
+    if (self.last_caller == caller and self.last_message == message) and (current_time - self.last_time) < self.rate_limit then
+        return
+    end
+
+    self.last_caller = caller
+    self.last_message = message
+    self.last_time = current_time
     table.insert(self.queue, Toast.new(caller, message, 1, duration or 3.0, withLog or false))
 end
 
@@ -208,6 +236,14 @@ end
 ---@param withLog? boolean **Optional:** Log to console as well.
 ---@param duration? float **Optional:** The duration of the notification *(default 3s)*.
 function Notifier:ShowWarning(caller, message, withLog, duration)
+    local current_time = os.clock()
+    if (self.last_caller == caller and self.last_message == message) and (current_time - self.last_time) < self.rate_limit then
+        return
+    end
+
+    self.last_caller = caller
+    self.last_message = message
+    self.last_time = current_time
     table.insert(self.queue, Toast.new(caller, message, 2, duration or 3.0, withLog or false))
 end
 
@@ -216,6 +252,14 @@ end
 ---@param withLog? boolean **Optional:** Log to console as well.
 ---@param duration? float **Optional:** The duration of the notification *(default 3s)*.
 function Notifier:ShowError(caller, message, withLog, duration)
+    local current_time = os.clock()
+    if (self.last_caller == caller and self.last_message == message) and (current_time - self.last_time) < self.rate_limit then
+        return
+    end
+
+    self.last_caller = caller
+    self.last_message = message
+    self.last_time = current_time
     table.insert(self.queue, Toast.new(caller, message, 3, duration or 3.0, withLog or false))
 end
 
@@ -244,6 +288,7 @@ function Notifier:Update()
             end
         end
     end
+
     if self.active then
         if os.clock() - self.active.start_time >= self.active.duration then
             self.active.should_draw = false
