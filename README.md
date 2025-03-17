@@ -1,20 +1,36 @@
 # YimToast
 Lightweight GUI notification system for Lua developers.
 
-![yimtoast](https://github.com/user-attachments/assets/104738cb-3167-4309-8d3f-ff695019428d)
+![showcase](https://github.com/user-attachments/assets/7a09b9a2-4bea-4998-a977-7fe29498665f)
 
-## `:Show*()` Method Calls:
-  - Param `caller`: string: The title of your notification.
-  - Param `message`: string: The body of your notification.
-  - Param `withLog`: boolean: **Optional:** If true, log to console as well.
-  - Param `duration`: number: **Optional:** Set the display duration *(defaults to 3 seconds)*
+## Features
 
-## `:Notify()` Method Call:
-  - Param `caller`: string: The title of your notification.
-  - Param `message`: string: The body of your notification.
-  - Param `level`: number: A number between 0 and 3 representing `normal`, `success`, `warning`, and `error` respectively.
-  - Param `withLog`: boolean: **Optional:** If true, log to console as well.
-  - Param `duration`: number: **Optional:** Set the display duration *(defaults to 3 seconds)*
+🔃 **In/Out animations.**
+
+🔊 **Sound feedback.**
+
+⏱️ **Time feedback.**
+
+⏳ **First In First Out queue.**
+
+## Methods
+
+### `Show*(caller, message, withLog, duration)`
+
+  > `ShowMessage` `ShowSuccess` `ShowWarning` `ShowError`
+
+- Param `caller`: string: The title of your notification.
+- Param `message`: string: The body of your notification.
+- Param `withLog`: boolean: **Optional:** If true, log to console as well.
+- Param `duration`: number: **Optional:** Set the display duration *(defaults to 3 seconds)*
+
+### `Notify(caller, message, level, withLog, duration)`
+
+- Param `caller`: string: The title of your notification.
+- Param `message`: string: The body of your notification.
+- Param `level`: number: A number between 0 and 3 representing `normal`, `success`, `warning`, and `error` respectively.
+- Param `withLog`: boolean: **Optional:** If true, log to console as well.
+- Param `duration`: number: **Optional:** Set the display duration *(defaults to 3 seconds)*
 
 ## Usage Example:
 
@@ -51,3 +67,11 @@ test_tab:add_imgui(function()
         )
     end
 end)
+```
+
+## TODO
+
+- [ ] Add controller vibration feedback.
+- [ ] Add callback support.
+- [ ] Add a configurable `dismiss` hotkey.
+- [ ] Decide whether to keep the **First In First Out** behavior or switch to **Last In First Out**.
