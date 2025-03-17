@@ -5,9 +5,9 @@ local __instance__ = nil
 
 local bgColors = {
     [0] = {r = 0.15, g = 0.15, b = 0.15, a = 1.0},
-    [1] = {r = 0.2, g = 0.6, b = 0.2, a = 0.9},
-    [2] = {r = 0.8, g = 0.6, b = 0.2, a = 0.8},
-    [3] = {r = 0.8, g = 0.2, b = 0.2, a = 0.8},
+    [1] = {r = 0.1, g = 0.6, b = 0.1, a = 0.8},
+    [2] = {r = 0.8, g = 0.6, b = 0.1, a = 0.8},
+    [3] = {r = 0.8, g = 0.0, b = 0.0, a = 0.8},
 }
 
 local textColors = {
@@ -58,6 +58,8 @@ local function GetScreenResolution()
     return scr
 end
 
+local SCREEN_RES <const> = GetScreenResolution()
+
 
 ---@alias ToastLevel integer
 ---| 0 # Default
@@ -72,9 +74,12 @@ end
 ---@field duration float **Optional:** The duration of the notification *(default 3s)*.
 ---@field start_time float Time at which the notification was first shown.
 ---@field should_draw boolean Whether the notification UI should be drawn.
----@field screen_resolution table The game's screen resolution.
 local Toast = {}
 Toast.__index = Toast
+Toast.screen_resolution = SCREEN_RES
+Toast.ui_width = 320
+Toast.ui_pos_x = Toast.screen_resolution.x - Toast.ui_width - 20
+Toast.ui_pos_y = -200.0
 
 ---@param caller string The notification title.
 ---@param message string The notification body.
@@ -89,7 +94,6 @@ function Toast.new(caller, message, level, duration, log)
         duration = duration or 3.0,
         start_time = os.clock(),
         should_draw = false,
-        screen_resolution = GetScreenResolution(),
         should_log = log
     }, Toast)
 end
@@ -98,11 +102,11 @@ function Toast:Draw()
     if not self.should_draw then
         return
     end
-    local screenResolution = self.screen_resolution
+
     local windowBgCol = bgColors[self.level] or bgColors[0]
-    local textCol = textColors[self.level] or textColors[0]
-    local notifWindowWidth = 320
-    local notifPosX = screenResolution.x - notifWindowWidth - 10
+    local textCol     = textColors[self.level] or textColors[0]
+    local elapsed     = os.clock() - self.start_time
+    local progress    = 1.0 - (elapsed / self.duration)
 
     if __instance__ and #__instance__.queue > 0 then
         __caller__ = string.format("%s  (+%d)", self.caller, #__instance__.queue)
@@ -110,9 +114,9 @@ function Toast:Draw()
         __caller__ = self.caller
     end
 
-    ImGui.SetNextWindowSizeConstraints(notifWindowWidth, 100, notifWindowWidth, 400)
-    ImGui.SetNextWindowBgAlpha(0.7)
-    ImGui.SetNextWindowPos(notifPosX, 20)
+    ImGui.SetNextWindowSizeConstraints(self.ui_width, 100, self.ui_width, 400)
+    ImGui.SetNextWindowBgAlpha(0.64)
+    ImGui.SetNextWindowPos(self.ui_pos_x, self.ui_pos_y)
     ImGui.PushStyleColor(
         ImGuiCol.WindowBg,
         windowBgCol.r,
@@ -120,10 +124,16 @@ function Toast:Draw()
         windowBgCol.b,
         windowBgCol.a
     )
+    ImGui.PushStyleColor(
+        ImGuiCol.Text,
+        textCol.r,
+        textCol.g,
+        textCol.b,
+        textCol.a
+    )
     if ImGui.Begin(("YimToast%s"):format(self.start_time),
             ImGuiWindowFlags.AlwaysAutoResize |
             ImGuiWindowFlags.NoTitleBar |
-            ImGuiWindowFlags.NoResize |
             ImGuiWindowFlags.NoMove |
             ImGuiWindowFlags.NoCollapse |
             ImGuiWindowFlags.NoFocusOnAppearing |
@@ -131,30 +141,14 @@ function Toast:Draw()
             ImGuiWindowFlags.NoScrollbar |
             ImGuiWindowFlags.NoScrollWithMouse
     ) then
-        ImGui.PushTextWrapPos(notifWindowWidth - (ImGui.GetFontSize() / 2))
-        local callerTextWidth, _ = ImGui.CalcTextSize(__caller__)
-        local elapsed = os.clock() - self.start_time
-        local progress = 1.0 - (elapsed / self.duration)
-        ImGui.Dummy((notifWindowWidth / 2) - callerTextWidth, 1); ImGui.SameLine()
-        ImGui.TextColored(
-            textCol.r,
-            textCol.g,
-            textCol.b,
-            textCol.a,
-            __caller__
-        )
-        ImGui.Separator()
-        ImGui.TextColored(
-            textCol.r,
-            textCol.g,
-            textCol.b,
-            textCol.a,
-            self.message
-        )
+        ImGui.PushTextWrapPos(self.ui_width - (ImGui.GetFontSize() / 2))
+        ImGui.SeparatorText(__caller__)
+        ImGui.Spacing()
+        ImGui.Text(self.message)
         ImGui.Dummy(1, 10)
         ImGui.ProgressBar(progress, -1, 3)
         ImGui.PopTextWrapPos()
-        ImGui.PopStyleColor()
+        ImGui.PopStyleColor(2)
         ImGui.End()
     end
 end
@@ -290,7 +284,17 @@ function Notifier:Update()
     end
 
     if self.active then
-        if os.clock() - self.active.start_time >= self.active.duration then
+        if (os.clock() - self.active.start_time) < (self.active.duration / 3) then
+            if self.active.ui_pos_y < 20 then
+                self.active.ui_pos_y = self.active.ui_pos_y + 20
+            end
+        end
+        if (os.clock() - self.active.start_time) >= (self.active.duration * 0.95) then
+            if self.active.ui_pos_y > -200 then
+                self.active.ui_pos_y = self.active.ui_pos_y - 20
+            end
+        end
+        if (os.clock() - self.active.start_time) >= self.active.duration then
             self.active.should_draw = false
             self.active = nil
             self.should_draw = false
@@ -314,7 +318,7 @@ if __init__ then
 
     script.register_looped("YimToast", function(yimtoast)
         YimToast:Update()
-        yimtoast:sleep(100)
+        yimtoast:sleep(1)
     end)
 end
 
